@@ -7,10 +7,7 @@ import com.example.userlogin.service.JpaUserService;
 import jakarta.validation.Valid;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,11 +17,9 @@ import org.springframework.web.bind.annotation.*;
 public class JpaAuthController {
 
     private final JpaUserService userService;
-    private final AuthenticationManager authenticationManager;
 
-    public JpaAuthController(JpaUserService userService, AuthenticationManager authenticationManager) {
+    public JpaAuthController(JpaUserService userService) {
         this.userService = userService;
-        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/register")
@@ -40,14 +35,11 @@ public class JpaAuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-            );
-            
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+        boolean success = userService.authenticateUser(request);
+        
+        if (success) {
             return ResponseEntity.ok(new AuthResponse(true, "Login successful", request.getUsername()));
-        } catch (AuthenticationException e) {
+        } else {
             return ResponseEntity.badRequest().body(new AuthResponse(false, "Invalid credentials"));
         }
     }

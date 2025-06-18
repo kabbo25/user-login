@@ -3,6 +3,7 @@ package com.example.userlogin.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.context.annotation.Lazy;
 
 @Entity
 @Table(name = "users")

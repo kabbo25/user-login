@@ -1,11 +1,10 @@
-# Spring Security User Login System - 4 Implementation Approaches
+# Spring Security User Login System - 3 Implementation Approaches
 
-This project demonstrates 4 different ways to implement user authentication in Spring Security:
+This project demonstrates 3 different ways to implement user authentication in Spring Security:
 
 1. **InMemoryUserDetailsService** - Users stored in memory
 2. **JdbcUserDetailsManager** - Users stored in database with JDBC (Spring's built-in)
 3. **Custom JPA UserDetailsService** - Users stored in database with custom JPA implementation
-4. **Manual DaoAuthenticationProvider** - Custom authentication setup
 
 ## Quick Start
 
@@ -32,10 +31,6 @@ mvn spring-boot:run -Dspring-boot.run.profiles=jdbc
 mvn spring-boot:run -Dspring-boot.run.profiles=custom-jpa
 ```
 
-#### Manual Approach:
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=manual
-```
 
 ## API Endpoints
 
@@ -59,22 +54,12 @@ Each approach has its own set of endpoints:
 - `GET /api/custom-jpa/user/profile` - User profile (requires USER role)
 - `GET /api/custom-jpa/admin/dashboard` - Admin dashboard (requires ADMIN role)
 
-### Manual (`/api/manual/*`)
-- `POST /api/manual/register` - Register new user
-- `POST /api/manual/login` - Login user
-- `GET /api/manual/user/profile` - User profile (requires USER role)
-- `GET /api/manual/admin/dashboard` - Admin dashboard (requires ADMIN role)
 
 ## Example Requests
 
 ### Registration
 ```bash
-curl -X POST http://localhost:8080/api/jdbc/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "newuser",
-    "email": "newuser@example.com",
-    "password": "password123"
+curl -X POST http://local"password": "password123"
   }'
 ```
 
@@ -100,7 +85,7 @@ curl -X GET http://localhost:8080/api/jdbc/user/profile \
 - **User**: `jdbcuser` / `password123` 
 - **Admin**: `jdbcadmin` / `password123`
 
-### Custom JPA & Manual Profiles  
+### Custom JPA Profile  
 - **User**: `testuser` / `password123`
 - **Admin**: `testadmin` / `admin123`
 
@@ -128,25 +113,19 @@ curl -X GET http://localhost:8080/api/jdbc/user/profile \
 - **Configuration**: Custom `UserDetailsService` implementing database lookup via JPA
 - **Registration**: Saves users to database via JPA repository with custom User entity
 
-### 4. Manual DaoAuthenticationProvider
-- **Storage**: Users stored in database via JPA
-- **Persistence**: Full persistence with H2 database
-- **Use Case**: When you need full control over authentication process
-- **Configuration**: Manually configured `DaoAuthenticationProvider` and `AuthenticationManager`
-- **Registration**: Same as Custom JPA but with explicit authentication provider setup
 
 ## Architecture Comparison
 
-| Feature | InMemory | JDBC | Custom JPA | Manual |
-|---------|----------|------|------------|--------|
-| User Storage | Memory | Database (JDBC) | Database (JPA) | Database (JPA) |
-| Persistence | No | Yes | Yes | Yes |
-| UserDetailsService | Built-in | Built-in | Custom | Custom |
-| AuthenticationProvider | Auto-configured | Auto-configured | Auto-configured | Manual |
-| AuthenticationManager | Auto-configured | Auto-configured | Auto-configured | Manual |
-| Schema | N/A | Spring Standard | Custom | Custom |
-| Complexity | Low | Low-Medium | Medium | High |
-| Control Level | Low | Medium | Medium-High | High |
+| Feature | InMemory | JDBC | Custom JPA |
+|---------|----------|------|------------|
+| User Storage | Memory | Database (JDBC) | Database (JPA) |
+| Persistence | No | Yes | Yes |
+| UserDetailsService | Built-in | Built-in | Custom |
+| AuthenticationProvider | Auto-configured | Auto-configured | Auto-configured |
+| AuthenticationManager | Auto-configured | Auto-configured | Auto-configured |
+| Schema | N/A | Spring Standard | Custom |
+| Complexity | Low | Low-Medium | Medium |
+| Control Level | Low | Medium | Medium-High |
 
 ## Security Configuration Highlights
 
@@ -177,17 +156,10 @@ public DaoAuthenticationProvider authenticationProvider() {
 }
 ```
 
-### Manual
-```java
-@Bean
-public AuthenticationManager manualAuthenticationManager() {
-    return new ProviderManager(Collections.singletonList(manualAuthenticationProvider()));
-}
-```
 
 ## Database Access
 
-When running with `jdbc`, `custom-jpa`, or `manual` profiles, you can access the H2 console at:
+When running with `jdbc` or `custom-jpa` profiles, you can access the H2 console at:
 http://localhost:8080/h2-console
 
 - **JDBC URL**: `jdbc:h2:mem:testdb`
@@ -199,5 +171,5 @@ http://localhost:8080/h2-console
 - `authorities` - Standard Spring Security authorities table  
 - `user_profiles` - Additional profile information
 
-### Custom JPA & Manual Profile Tables
+### Custom JPA Profile Tables
 - `users` - Custom User entity table with id, username, email, password, role

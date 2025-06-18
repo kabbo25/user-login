@@ -1,0 +1,667 @@
+# Spring Security User Login System - PowerPoint Presentation
+
+## Slide 1: Title Slide
+**Spring Security User Login System**
+- 4 Implementation Approaches
+- A Comprehensive Guide to Authentication in Spring Boot
+- [Your Name]
+- [Date]
+
+---
+
+## Slide 2: Agenda
+**What We'll Cover Today**
+1. Project Overview
+2. Authentication Approaches
+3. Technical Architecture
+4. Implementation Deep Dive
+5. API Endpoints & Testing
+6. Best Practices & Use Cases
+7. Live Demo
+8. Q&A
+
+---
+
+## Slide 3: Project Overview
+**Multi-Approach Authentication System**
+- **Purpose**: Demonstrate 4 different ways to implement user authentication
+- **Technology Stack**:
+  - Spring Boot 3.2.0
+  - Spring Security
+  - H2 Database
+  - JPA/Hibernate
+  - Maven
+- **Key Features**:
+  - User Registration
+  - Login Authentication
+  - Role-Based Access Control
+  - Profile-Based Configuration
+
+---
+
+## Slide 4: Why Multiple Approaches?
+**Understanding the Options**
+- **Flexibility**: Different use cases require different solutions
+- **Learning**: Compare and contrast implementation strategies
+- **Evolution**: From simple to complex implementations
+- **Production Ready**: Each approach suitable for specific scenarios
+
+---
+
+## Slide 5: The 3 Authentication Approaches
+**Overview of Implementation Methods**
+
+1. **InMemory** 🧠
+   - Users stored in application memory
+   - Perfect for development/testing
+
+2. **JDBC** 💾
+   - Spring's built-in database authentication
+   - Standard schema approach
+
+3. **Custom JPA** 🎯
+   - Custom entities and repositories
+   - Flexible data model
+
+---
+
+## Slide 6: Technical Architecture
+**High-Level System Design**
+
+```
+┌─────────────────┐     ┌──────────────────┐
+│   Client/UI     │────▶│  REST Controllers │
+└─────────────────┘     └──────────────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │                         │
+              ┌─────▼──────┐          ┌──────▼──────┐
+              │  Services   │          │  Security   │
+              │             │          │   Config    │
+              └─────┬──────┘          └──────┬──────┘
+                    │                         │
+              ┌─────▼──────────────────────▼─┐
+              │      Spring Security         │
+              │   Authentication Manager     │
+              └──────────────┬───────────────┘
+                             │
+              ┌──────────────▼───────────────┐
+              │   UserDetailsService/        │
+              │   Authentication Provider    │
+              └──────────────┬───────────────┘
+                             │
+              ┌──────────────▼───────────────┐
+              │    Data Layer (Memory/DB)    │
+              └──────────────────────────────┘
+```
+
+---
+
+## Slide 7: Project Structure
+**Clean Architecture Organization**
+
+```
+user-login/
+├── src/main/java/com/example/userlogin/
+│   ├── config/           # Security configurations
+│   │   ├── InMemorySecurityConfig.java
+│   │   ├── JdbcSecurityConfig.java
+│   │   ├── JpaSecurityConfig.java
+│   │   └── ManualSecurityConfig.java
+│   ├── controller/       # REST endpoints
+│   ├── dto/             # Data transfer objects
+│   ├── entity/          # JPA entities
+│   ├── repository/      # Data access layer
+│   └── service/         # Business logic
+├── src/main/resources/
+│   ├── application.yml  # Configuration
+│   ├── schema.sql      # Database schema
+│   └── data.sql        # Initial data
+└── pom.xml             # Dependencies
+```
+
+---
+
+## Slide 8: InMemory Approach - Overview
+**Simplest Implementation**
+
+**Characteristics:**
+- ✅ No database required
+- ✅ Quick setup
+- ✅ Perfect for testing
+- ❌ No persistence
+- ❌ Not for production
+
+**Key Components:**
+- `InMemoryUserDetailsManager`
+- Runtime user storage
+- Basic authentication
+
+---
+
+## Slide 9: InMemory Approach - Code
+**Implementation Details**
+
+```java
+@Bean
+public UserDetailsService userDetailsService() {
+    List<UserDetails> users = new ArrayList<>();
+    
+    users.add(User.builder()
+        .username("user1")
+        .password(passwordEncoder().encode("password123"))
+        .roles("USER")
+        .build());
+        
+    return new InMemoryUserDetailsManager(users);
+}
+```
+
+**Security Configuration:**
+```java
+http.authorizeHttpRequests(authz -> authz
+    .requestMatchers("/api/inmemory/register").permitAll()
+    .requestMatchers("/api/inmemory/admin/**").hasRole("ADMIN")
+    .anyRequest().authenticated()
+)
+```
+
+---
+
+## Slide 10: JDBC Approach - Overview
+**Spring's Built-in Database Authentication**
+
+**Characteristics:**
+- ✅ Database persistence
+- ✅ Standard Spring Security schema
+- ✅ Production ready
+- ✅ Built-in user management
+- ❌ Fixed schema structure
+
+**Required Tables:**
+- `users` - Username, password, enabled
+- `authorities` - User roles/permissions
+- `user_profiles` - Additional user data
+
+---
+
+## Slide 11: JDBC Approach - Schema
+**Database Structure**
+
+```sql
+-- Users table
+CREATE TABLE users (
+    username VARCHAR(50) NOT NULL PRIMARY KEY,
+    password VARCHAR(100) NOT NULL,
+    enabled BOOLEAN NOT NULL
+);
+
+-- Authorities table
+CREATE TABLE authorities (
+    username VARCHAR(50) NOT NULL,
+    authority VARCHAR(50) NOT NULL,
+    FOREIGN KEY(username) REFERENCES users(username)
+);
+
+-- Custom profile table
+CREATE TABLE user_profiles (
+    username VARCHAR(50) NOT NULL PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## Slide 12: Custom JPA Approach - Overview
+**Flexible Entity-Based Authentication**
+
+**Characteristics:**
+- ✅ Custom entity model
+- ✅ Full JPA features
+- ✅ Flexible schema
+- ✅ Complex relationships
+- ✅ Production ready
+
+**Key Components:**
+- Custom `User` entity
+- JPA Repository
+- Custom `UserDetailsService`
+
+---
+
+## Slide 13: Custom JPA Approach - Implementation
+**Entity and Service**
+
+```java
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(unique = true)
+    private String username;
+    
+    @Column(unique = true)
+    private String email;
+    
+    private String password;
+    
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
+}
+```
+
+```java
+@Service
+public class CustomUserDetailsService implements UserDetailsService {
+    public UserDetails loadUserByUsername(String username) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        
+        return new org.springframework.security.core.userdetails.User(
+            user.getUsername(),
+            user.getPassword(),
+            getAuthorities(user)
+        );
+    }
+}
+```
+
+---
+
+
+---
+
+## Slide 16: API Endpoints
+**RESTful Interface**
+
+**Common Endpoints (per approach):**
+- `POST /api/{approach}/register` - User registration
+- `POST /api/{approach}/login` - User authentication
+- `GET /api/{approach}/user/profile` - User profile (AUTH required)
+- `GET /api/{approach}/admin/dashboard` - Admin access (ADMIN role)
+
+**Approaches:**
+- `/api/inmemory/*`
+- `/api/jdbc/*`
+- `/api/custom-jpa/*`
+
+---
+
+## Slide 17: Registration Flow
+**User Registration Process**
+
+```json
+// Request
+POST /api/jdbc/register
+{
+    "username": "newuser",
+    "email": "newuser@example.com",
+    "password": "password123"
+}
+
+// Response
+{
+    "success": true,
+    "message": "User registered successfully",
+    "username": "newuser"
+}
+```
+
+**Validation:**
+- Username: 3-20 characters
+- Email: Valid format
+- Password: Minimum 6 characters
+
+---
+
+## Slide 18: Authentication Flow
+**Login Process**
+
+1. **Client Request**
+   ```json
+   POST /api/jdbc/login
+   {
+       "username": "newuser",
+       "password": "password123"
+   }
+   ```
+
+2. **Server Processing**
+   - Validate credentials
+   - Load user details
+   - Verify password
+   - Create authentication token
+
+3. **Response**
+   - Success: 200 OK with user info
+   - Failure: 400 Bad Request
+
+---
+
+## Slide 19: Security Features
+**Built-in Protection**
+
+**Password Security:**
+- BCrypt encoding
+- Configurable strength
+- No plain text storage
+
+**Access Control:**
+- Role-based (USER, ADMIN)
+- Method-level security
+- URL pattern matching
+
+**Session Management:**
+- Stateless REST API
+- Basic Authentication
+- CSRF protection (configurable)
+
+---
+
+## Slide 20: Running the Application
+**Quick Start Guide**
+
+**1. Build the Project:**
+```bash
+mvn clean install
+```
+
+**2. Run with Profile:**
+```bash
+# InMemory
+mvn spring-boot:run -Dspring-boot.run.profiles=inmemory
+
+# JDBC
+mvn spring-boot:run -Dspring-boot.run.profiles=jdbc
+
+# Custom JPA
+mvn spring-boot:run -Dspring-boot.run.profiles=custom-jpa
+
+```
+
+**3. Access H2 Console:**
+- URL: http://localhost:8080/h2-console
+- JDBC URL: jdbc:h2:mem:testdb
+- Username: sa
+- Password: password
+
+---
+
+## Slide 21: Testing with cURL
+**API Testing Examples**
+
+**Registration:**
+```bash
+curl -X POST http://localhost:8080/api/jdbc/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "password123"
+  }'
+```
+
+**Login:**
+```bash
+curl -X POST http://localhost:8080/api/jdbc/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "testuser",
+    "password": "password123"
+  }'
+```
+
+**Protected Endpoint:**
+```bash
+curl -X GET http://localhost:8080/api/jdbc/user/profile \
+  -u testuser:password123
+```
+
+---
+
+## Slide 22: Comparison Matrix
+**Choosing the Right Approach**
+
+| Feature | InMemory | JDBC | Custom JPA |
+|---------|----------|------|------------|
+| **Persistence** | ❌ | ✅ | ✅ |
+| **Setup Complexity** | Low | Medium | Medium |
+| **Flexibility** | Low | Medium | High |
+| **Production Ready** | ❌ | ✅ | ✅ |
+| **Custom Schema** | ❌ | ❌ | ✅ |
+| **Use Case** | Dev/Test | Simple Apps | Complex Apps |
+
+---
+
+## Slide 23: Use Case Recommendations
+**When to Use Each Approach**
+
+**InMemory:**
+- 🧪 Unit testing
+- 🚀 Rapid prototyping
+- 📚 Learning Spring Security
+
+**JDBC:**
+- 🏢 Small to medium applications
+- 📦 Standard user management
+- ⚡ Quick production deployment
+
+**Custom JPA:**
+- 🏗️ Complex domain models
+- 🔄 Integration with existing entities
+- 📈 Scalable applications
+
+
+---
+
+## Slide 24: Best Practices
+**Security Guidelines**
+
+**1. Password Management:**
+- Always use strong encoding (BCrypt)
+- Implement password policies
+- Never log passwords
+
+**2. Error Handling:**
+- Don't expose sensitive information
+- Use generic error messages
+- Log security events
+
+**3. Database Security:**
+- Use prepared statements
+- Validate all inputs
+- Implement proper indexing
+
+**4. Production Deployment:**
+- Enable HTTPS
+- Configure CORS properly
+- Use environment variables for secrets
+
+---
+
+## Slide 25: Common Pitfalls
+**What to Avoid**
+
+**❌ Don't:**
+- Store passwords in plain text
+- Use InMemory in production
+- Expose stack traces to users
+- Hardcode credentials
+- Skip input validation
+
+**✅ Do:**
+- Use password encoders
+- Choose appropriate approach
+- Handle errors gracefully
+- Use configuration files
+- Validate all user input
+
+---
+
+## Slide 26: Extension Points
+**Enhancing the System**
+
+**Possible Additions:**
+- 🔐 JWT token authentication
+- 📧 Email verification
+- 🔑 Password reset functionality
+- 👥 OAuth2 integration
+- 📊 User activity logging
+- 🚦 Rate limiting
+- 🔄 Remember me functionality
+- 📱 2FA support
+
+---
+
+## Slide 27: Performance Considerations
+**Optimization Tips**
+
+**Database:**
+- Index username and email columns
+- Use connection pooling
+- Optimize queries
+
+**Caching:**
+- Cache user details
+- Session management
+- Redis integration
+
+**Security:**
+- Async password encoding
+- Efficient role checking
+- Minimize database calls
+
+---
+
+## Slide 28: Monitoring & Logging
+**Production Insights**
+
+**Key Metrics:**
+- Login attempts (success/failure)
+- Registration rate
+- Response times
+- Error rates
+
+**Logging Strategy:**
+```yaml
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.example.userlogin: INFO
+```
+
+**Security Events:**
+- Failed login attempts
+- Privilege escalation attempts
+- Account lockouts
+
+---
+
+## Slide 29: Demo Scenarios
+**Live Demonstration**
+
+**Scenario 1: Basic User Flow**
+1. Start with JDBC profile
+2. Register new user
+3. Login with credentials
+4. Access protected endpoint
+5. Show database entries
+
+**Scenario 2: Admin Access**
+1. Login as admin
+2. Access admin dashboard
+3. Demonstrate role-based access
+
+**Scenario 3: Profile Switching**
+1. Stop application
+2. Switch to Custom JPA profile
+3. Show different implementation
+4. Compare database schemas
+
+---
+
+## Slide 30: Key Takeaways
+**What We've Learned**
+
+✅ **3 Different Approaches** to Spring Security authentication
+
+✅ **When to Use Each** based on requirements
+
+✅ **Implementation Details** for each approach
+
+✅ **Best Practices** for secure applications
+
+✅ **Production Considerations** for deployment
+
+✅ **Extension Possibilities** for growth
+
+---
+
+## Slide 31: Resources & References
+**Learn More**
+
+**Official Documentation:**
+- Spring Security Reference
+- Spring Boot Guides
+- Spring Data JPA
+
+**GitHub Repository:**
+- Full source code
+- README with examples
+- Issue tracking
+
+**Community:**
+- Stack Overflow
+- Spring Forums
+- Baeldung tutorials
+
+---
+
+## Slide 32: Questions & Discussion
+**Let's Connect!**
+
+**Thank You for Your Attention!**
+
+**Questions?**
+
+**Contact Information:**
+- Email: [your.email@example.com]
+- GitHub: [your-github-username]
+- LinkedIn: [your-linkedin-profile]
+
+**Repository:**
+- github.com/[your-username]/user-login
+
+---
+
+## Slide 33: Bonus - Quick Reference
+**Commands Cheat Sheet**
+
+```bash
+# Build
+mvn clean install
+
+# Run profiles
+mvn spring-boot:run -Dspring-boot.run.profiles=inmemory
+mvn spring-boot:run -Dspring-boot.run.profiles=jdbc
+mvn spring-boot:run -Dspring-boot.run.profiles=custom-jpa
+
+# Test endpoints
+curl -u user:pass http://localhost:8080/api/{approach}/user/profile
+
+# H2 Console
+http://localhost:8080/h2-console
+```
+
+---
+
+## Notes for Presenter:
+1. **Slide 6**: Use animation to show data flow through the architecture
+2. **Slide 16-18**: Consider live coding demonstration
+3. **Slide 22**: Highlight the row that matches audience needs
+4. **Slide 29**: Have multiple terminal windows ready for demo
+5. **Throughout**: Use consistent color coding for each approach

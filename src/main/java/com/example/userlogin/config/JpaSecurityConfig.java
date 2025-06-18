@@ -48,7 +48,7 @@ public class JpaSecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/custom-jpa/register", "/api/custom-jpa/login").permitAll()
+                        .requestMatchers("/api/custom-jpa/register", "/api/custom-jpa/login", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/api/custom-jpa/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/custom-jpa/user/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
