@@ -12,7 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class DataInitializer {
 
     @Bean
-    @Profile("custom-jpa")
+    @Profile({"custom-jpa", "jwt"})
     public CommandLineRunner initDatabase(UserRepository repository, PasswordEncoder passwordEncoder) {
         return args -> {
             if (repository.count() == 0) {

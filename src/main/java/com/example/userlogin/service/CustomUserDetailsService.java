@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 @Service
-@Profile("custom-jpa")
+@Profile({"custom-jpa", "jwt"})
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
