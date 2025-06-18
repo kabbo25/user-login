@@ -173,3 +173,58 @@ http://localhost:8080/h2-console
 
 ### Custom JPA Profile Tables
 - `users` - Custom User entity table with id, username, email, password, role
+
+
+# diagram of spring security flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant AuthFilter as Authentication Filter
+    participant AuthManager as Authentication Manager
+    participant AuthProvider as Authentication Provider
+    participant UserDetailsService
+    participant PasswordEncoder
+    participant SecurityContext
+    participant Session
+    participant Controller
+
+    User->>Browser: Enter credentials
+    Browser->>AuthFilter: POST /login (username, password)
+    
+    AuthFilter->>AuthFilter: Create UsernamePasswordAuthenticationToken
+    AuthFilter->>AuthManager: authenticate(token)
+    
+    AuthManager->>AuthProvider: authenticate(token)
+    AuthProvider->>UserDetailsService: loadUserByUsername(username)
+    UserDetailsService->>UserDetailsService: Query database
+    UserDetailsService-->>AuthProvider: Return UserDetails
+    
+    AuthProvider->>PasswordEncoder: matches(password, encodedPassword)
+    PasswordEncoder-->>AuthProvider: Return true/false
+    
+    alt Authentication Success
+        AuthProvider-->>AuthManager: Return authenticated token
+        AuthManager-->>AuthFilter: Return authenticated token
+        AuthFilter->>SecurityContext: Set authentication
+        AuthFilter->>Session: Store SecurityContext in session
+        Session-->>Browser: Return JSESSIONID cookie
+        Browser-->>User: Redirect to success page
+        
+        Note over User,Controller: Subsequent Requests
+        User->>Browser: Access protected resource
+        Browser->>AuthFilter: Request + JSESSIONID cookie
+        AuthFilter->>Session: Retrieve SecurityContext
+        Session-->>AuthFilter: Return SecurityContext
+        AuthFilter->>SecurityContext: Set authentication
+        AuthFilter->>Controller: Forward request
+        Controller-->>Browser: Return protected resource
+        Browser-->>User: Display content
+    else Authentication Failure
+        AuthProvider-->>AuthManager: Throw BadCredentialsException
+        AuthManager-->>AuthFilter: Throw exception
+        AuthFilter-->>Browser: Return 401/Redirect to login
+        Browser-->>User: Show error message
+    end
+```
