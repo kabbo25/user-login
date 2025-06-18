@@ -13,3 +13,7 @@ This is a user login system project. The codebase structure and commands will be
 ## Architecture
 
 *Architecture documentation will be added as the codebase grows*
+
+
+# basic workflow
+- any files changes related to project not documentation, use conventional commit and add the changes in the git
